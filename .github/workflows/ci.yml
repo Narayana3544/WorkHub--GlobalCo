@@ -66,13 +66,14 @@ jobs:
     name: Deploy Frontend to Vercel
     needs: [backend-test, frontend-build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.VERCEL_TOKEN != ''
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
