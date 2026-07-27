@@ -63,7 +63,7 @@ export const useUpdateRolePermission = () => {
             }
             return { previous };
         },
-        onError: (err, newUpdate, context) => {
+        onError: (_err, _newUpdate, context) => {
             if (context?.previous) {
                 queryClient.setQueryData(['permissions'], context.previous);
             }

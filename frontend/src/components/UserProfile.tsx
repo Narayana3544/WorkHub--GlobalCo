@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
+import type { Role } from '../types';
 import { User, Save, ShieldAlert } from 'lucide-react';
 import { DocumentUploadWidget } from './DocumentUploadWidget';
-import type { User as UserType } from '../types';
+import { useAuth } from '../context/AuthContext';
 
-interface UserProfileProps {
-    currentUser: UserType;
-}
-
-export const UserProfile: React.FC<UserProfileProps> = ({ currentUser }) => {
+export const UserProfile: React.FC = () => {
+    const { currentUser } = useAuth();
+    
     // Local state for the editable fields
     const [formData, setFormData] = useState({
-        fullName: currentUser.fullName || '',
-        email: currentUser.email || '',
-        role: currentUser.role || 'EMPLOYEE',
-        orgId: currentUser.orgId || '',
+        fullName: currentUser?.fullName || '',
+        email: currentUser?.email || '',
+        role: currentUser?.role || 'EMPLOYEE',
+        orgId: currentUser?.orgId || '',
         status: 'ACTIVE', // Mocked user status field as per PRD
     });
+
+    if (!currentUser) return null;
 
     const isAdmin = currentUser.role === 'ADMIN';
 
@@ -90,7 +91,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ currentUser }) => {
                                     <select 
                                         value={formData.role}
                                         disabled={!isAdmin}
-                                        onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                        onChange={(e) => setFormData({...formData, role: e.target.value as Role})}
                                         className={`w-full px-3 py-2 border rounded-md transition-shadow ${
                                             isAdmin 
                                                 ? 'border-gray-300 dark:border-gray-600 bg-transparent focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]' 

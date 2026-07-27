@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Star, Plus, X, Award } from 'lucide-react';
 import { usePerformanceReviews, useCreatePerformanceReview } from '../api/performanceQueries';
 import { useMasterData } from '../api/masterDataQueries';
-import type { User } from '../types';
+import { useAuth } from '../context/AuthContext';
 
-interface PerformanceReviewsProps {
-    currentUser: User;
-}
-
-export const PerformanceReviews: React.FC<PerformanceReviewsProps> = ({ currentUser }) => {
+export const PerformanceReviews: React.FC = () => {
+    const { currentUser } = useAuth();
+    if (!currentUser) return null;
+    
     const isManagerOrAdmin = currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN';
     
     // Fetch all for managers, or just mine for employees

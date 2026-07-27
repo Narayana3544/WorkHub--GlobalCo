@@ -3,14 +3,13 @@ import { useLeaveRequests } from '../api/leaveQueries';
 import { LeaveCalendar } from './LeaveCalendar';
 import { LeaveEmployeePanel } from './LeaveEmployeePanel';
 import { LeaveManagerPanel } from './LeaveManagerPanel';
-import type { User } from '../types';
+import { useAuth } from '../context/AuthContext';
 
-interface LeaveScreenProps {
-    currentUser: User;
-}
-
-export const LeaveScreen: React.FC<LeaveScreenProps> = ({ currentUser }) => {
+export const LeaveScreen: React.FC = () => {
+    const { currentUser } = useAuth();
     const { data: leaves, isLoading } = useLeaveRequests();
+
+    if (!currentUser) return null;
 
     const isManager = currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN';
 

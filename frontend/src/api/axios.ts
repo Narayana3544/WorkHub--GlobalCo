@@ -9,47 +9,93 @@ export const apiClient = axios.create({
     },
 });
 
-apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// Flag to prevent multiple infinite loops on refresh
+let isRefreshing = false;
+let failedQueue: any[] = [];
 
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+// Request Interceptor: Attach JWT
+apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('accessToken');
+        if (token && config.headers) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Handle 401 and attempt refresh
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
+        // Ensure we don't intercept /auth routes directly to avoid loops
+        if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh')) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then(token => {
+                        originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                        return apiClient(originalRequest);
+                    })
+                    .catch(err => Promise.reject(err));
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
 
             const refreshToken = localStorage.getItem('refreshToken');
-            if (refreshToken) {
-                try {
-                    const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-                        refreshToken,
-                    });
-                    
-                    const { accessToken, refreshToken: newRefreshToken } = res.data;
-                    localStorage.setItem('accessToken', accessToken);
-                    localStorage.setItem('refreshToken', newRefreshToken);
+            if (!refreshToken) {
+                isRefreshing = false;
+                // No refresh token, trigger a logout/redirect to login natively
+                localStorage.removeItem('accessToken');
+                window.location.href = '/login';
+                return Promise.reject(error);
+            }
 
-                    apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-                    originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-
-                    return apiClient(originalRequest);
-                } catch (refreshError) {
-                    // Refresh token is invalid/expired
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('refreshToken');
-                    localStorage.removeItem('user');
-                    window.location.href = '/login'; // Or handle via React Router state
-                    return Promise.reject(refreshError);
-                }
+            try {
+                const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+                const { accessToken, refreshToken: newRefresh } = response.data;
+                
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', newRefresh);
+                
+                apiClient.defaults.headers.common['Authorization'] = 'Bearer ' + accessToken;
+                originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
+                
+                processQueue(null, accessToken);
+                
+                return apiClient(originalRequest);
+            } catch (err) {
+                processQueue(err, null);
+                // Hard reset if refresh fails
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                window.location.href = '/login';
+                return Promise.reject(err);
+            } finally {
+                isRefreshing = false;
             }
         }
+
         return Promise.reject(error);
     }
 );

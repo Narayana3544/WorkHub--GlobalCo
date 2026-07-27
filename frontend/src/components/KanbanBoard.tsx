@@ -9,11 +9,11 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useWorkItems, useUpdateWorkItemStatus } from '../api/queries';
 import type { WorkItem, WorkItemStatus } from '../types';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
+import { useAuth } from '../context/AuthContext';
 
 // Mapping local column names to backend status codes
 export const COLUMNS: { id: WorkItemStatus; title: string }[] = [
@@ -24,7 +24,8 @@ export const COLUMNS: { id: WorkItemStatus; title: string }[] = [
     { id: 'DONE', title: 'Done' },
 ];
 
-export const KanbanBoard: React.FC<{ projectId: string; currentUser: any }> = ({ projectId, currentUser }) => {
+export const KanbanBoard: React.FC<{ projectId: string }> = ({ projectId }) => {
+    const { currentUser } = useAuth();
     const { data: workItems, isLoading } = useWorkItems(projectId);
     const { mutate: updateStatus } = useUpdateWorkItemStatus();
 
@@ -82,7 +83,7 @@ export const KanbanBoard: React.FC<{ projectId: string; currentUser: any }> = ({
         if (!item) return;
 
         // Role-based constraints
-        if (currentUser.role === 'EMPLOYEE' && item.assigneeId !== currentUser.id) {
+        if (currentUser?.role === 'EMPLOYEE' && item.assigneeId !== currentUser.id) {
             alert('Employees can only move their own assigned items.');
             return;
         }

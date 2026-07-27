@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { UploadCloud, File, FileText, Image as ImageIcon, Trash2, Download, AlertCircle } from 'lucide-react';
 import { useDocuments, useUploadDocument, useDeleteDocument } from '../api/documentQueries';
 import type { User } from '../types';

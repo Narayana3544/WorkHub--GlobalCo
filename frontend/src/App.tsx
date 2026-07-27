@@ -1,107 +1,136 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { KanbanBoard } from './components/KanbanBoard';
 import { UserProfile } from './components/UserProfile';
 import { LeaveScreen } from './components/LeaveScreen';
 import { PerformanceReviews } from './components/PerformanceReviews';
 import { SystemPermissions } from './components/SystemPermissions';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { User } from './types';
+import { LoginScreen } from './components/LoginScreen';
+import { HomeScreen } from './components/HomeScreen';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LogOut } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
-// Mock current user for demonstration
-const mockUser: User = {
-  id: 'user-1',
-  email: 'test@example.com',
-  fullName: 'Test User',
-  role: 'ADMIN', // Elevated to ADMIN to demonstrate the RBAC screen
-  orgId: 'org-1'
+// A layout wrapper for authenticated screens
+const AuthenticatedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { currentUser, logout } = useAuth();
+
+    if (!currentUser) return null;
+
+    return (
+        <div className="min-h-screen flex flex-col bg-[var(--bg-color)] text-[var(--text-primary)] font-sans">
+            {/* Global Top Nav */}
+            <header className="h-16 bg-[var(--card-color)] border-b border-[var(--border-color)] flex items-center px-6 justify-between shrink-0 shadow-sm z-50">
+                <Link to="/home" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div className="w-8 h-8 rounded bg-[var(--color-primary)] text-white flex items-center justify-center font-bold">W</div>
+                    <span className="font-bold text-xl text-[var(--color-primary)] hidden sm:block">WorkHub</span>
+                </Link>
+
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-sm font-medium leading-tight">{currentUser.fullName}</p>
+                            <p className="text-xs text-[var(--text-secondary)]">{currentUser.role}</p>
+                        </div>
+                        <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center text-sm font-bold shadow-sm">
+                            {currentUser.fullName.charAt(0).toUpperCase()}
+                        </div>
+                    </div>
+                    <div className="w-px h-6 bg-[var(--border-color)] mx-2"></div>
+                    <button 
+                        onClick={logout}
+                        className="text-[var(--text-secondary)] hover:text-red-500 transition-colors flex items-center gap-2 text-sm font-medium"
+                        title="Sign Out"
+                    >
+                        <LogOut size={18} />
+                        <span className="hidden sm:block">Sign Out</span>
+                    </button>
+                </div>
+            </header>
+
+            {/* Page Content */}
+            <main className="flex-1 overflow-hidden relative">
+                {children}
+            </main>
+        </div>
+    );
+};
+
+const AppRoutes = () => {
+    return (
+        <Routes>
+            {/* Public Route */}
+            <Route path="/login" element={<LoginScreen />} />
+
+            {/* Protected Routes */}
+            <Route path="/home" element={
+                <ProtectedRoute>
+                    <AuthenticatedLayout>
+                        <HomeScreen />
+                    </AuthenticatedLayout>
+                </ProtectedRoute>
+            } />
+
+            <Route path="/kanban" element={
+                <ProtectedRoute>
+                    <AuthenticatedLayout>
+                        {/* We inject mock project ID here since we aren't building a project selector yet */}
+                        <KanbanBoard projectId="mock-project-id" />
+                    </AuthenticatedLayout>
+                </ProtectedRoute>
+            } />
+
+            <Route path="/profile" element={
+                <ProtectedRoute>
+                    <AuthenticatedLayout>
+                        <UserProfile />
+                    </AuthenticatedLayout>
+                </ProtectedRoute>
+            } />
+
+            <Route path="/leave" element={
+                <ProtectedRoute>
+                    <AuthenticatedLayout>
+                        <LeaveScreen />
+                    </AuthenticatedLayout>
+                </ProtectedRoute>
+            } />
+
+            <Route path="/performance" element={
+                <ProtectedRoute>
+                    <AuthenticatedLayout>
+                        <PerformanceReviews />
+                    </AuthenticatedLayout>
+                </ProtectedRoute>
+            } />
+
+            <Route path="/permissions" element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AuthenticatedLayout>
+                        <SystemPermissions />
+                    </AuthenticatedLayout>
+                </ProtectedRoute>
+            } />
+
+            {/* Default redirect to home (which will bounce to login if unauthenticated) */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+    );
 };
 
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] font-sans">
-          {/* Main App Layout */}
-          <div className="flex h-screen overflow-hidden">
-            {/* Sidebar Placeholder */}
-            <aside className="w-64 bg-[var(--card-color)] border-r border-[var(--border-color)] p-4 flex flex-col">
-              <div className="font-bold text-xl text-[var(--color-primary)] mb-8 flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-[var(--color-primary)] text-white flex items-center justify-center">W</div>
-                WorkHub
-              </div>
-              <nav className="flex-1 space-y-2">
-                <NavLink 
-                    to="/" 
-                    className={({ isActive }) => `block p-2 rounded-lg font-medium cursor-pointer ${isActive ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' : 'text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                >
-                  Sprint Board
-                </NavLink>
-                <NavLink 
-                    to="/leave" 
-                    className={({ isActive }) => `block p-2 rounded-lg font-medium cursor-pointer ${isActive ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' : 'text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                >
-                  Leave & Time Off
-                </NavLink>
-                <NavLink 
-                    to="/performance" 
-                    className={({ isActive }) => `block p-2 rounded-lg font-medium cursor-pointer ${isActive ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' : 'text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                >
-                  Performance
-                </NavLink>
-                {mockUser.role === 'ADMIN' && (
-                    <NavLink 
-                        to="/permissions" 
-                        className={({ isActive }) => `block p-2 rounded-lg font-medium cursor-pointer ${isActive ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' : 'text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                    >
-                      System Permissions
-                    </NavLink>
-                )}
-                <div className="p-2 text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium cursor-pointer">
-                  Reports
-                </div>
-              </nav>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg-color)]">
-              {/* Top Nav Placeholder */}
-              <header className="h-16 bg-[var(--card-color)] border-b border-[var(--border-color)] flex items-center px-6 justify-between shrink-0">
-                <h1 className="font-semibold text-lg">Project Alpha</h1>
-                <div className="flex items-center gap-4">
-                  <Link to="/profile" className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer" title="My Profile">
-                    {mockUser.fullName.charAt(0)}
-                  </Link>
-                </div>
-              </header>
-
-              {/* Page Content */}
-              <div className="flex-1 overflow-hidden">
-                <Routes>
-                  <Route path="/" element={<KanbanBoard projectId="mock-project-id" currentUser={mockUser} />} />
-                  <Route path="/profile" element={<UserProfile currentUser={mockUser} />} />
-                  <Route path="/leave" element={<LeaveScreen currentUser={mockUser} />} />
-                  <Route path="/performance" element={<PerformanceReviews currentUser={mockUser} />} />
-                  <Route 
-                    path="/permissions" 
-                    element={
-                        <ProtectedRoute currentUser={mockUser} allowedRoles={['ADMIN']}>
-                            <SystemPermissions />
-                        </ProtectedRoute>
-                    } 
-                  />
-                </Routes>
-              </div>
-            </main>
-          </div>
-        </div>
+        <AuthProvider>
+            <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
 };
 
 export default App;
-

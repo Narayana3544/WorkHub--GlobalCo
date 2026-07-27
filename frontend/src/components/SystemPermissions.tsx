@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useRolePermissions, useUpdateRolePermission } from '../api/permissionQueries';
+import { CreateUser } from './CreateUser';
 
 export const SystemPermissions: React.FC = () => {
     const { data: rolePermissions, isLoading } = useRolePermissions();
@@ -61,7 +62,7 @@ export const SystemPermissions: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-sm">
+            <div className="flex-1 overflow-auto bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-sm mb-6">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50/80 dark:bg-gray-800/50 sticky top-0 z-10">
                         <tr>
@@ -119,6 +120,10 @@ export const SystemPermissions: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="mt-8">
+                <CreateUser />
             </div>
         </div>
     );

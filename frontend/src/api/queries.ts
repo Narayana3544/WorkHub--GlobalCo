@@ -121,7 +121,7 @@ export const useUpdateWorkItemStatus = () => {
             }
             return { previousItems };
         },
-        onError: (err, newStatus, context) => {
+        onError: (_err, _newStatus, context) => {
             if (context?.previousItems) {
                 queryClient.setQueryData(['workItems', 'mock-project-id'], context.previousItems);
             }
