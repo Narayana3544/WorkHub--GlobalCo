@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, UserPlus, LogIn } from 'lucide-react';
 
@@ -43,14 +43,14 @@ export const LoginScreen: React.FC = () => {
 
         try {
             if (mode === 'login') {
-                const response = await axios.post('http://localhost:8080/api/auth/login', {
+                const response = await apiClient.post('/auth/login', {
                     email,
                     password
                 });
                 login(response.data.accessToken, response.data.refreshToken);
                 navigate('/home');
             } else {
-                const response = await axios.post('http://localhost:8080/api/auth/register', {
+                const response = await apiClient.post('/auth/register', {
                     fullName,
                     email,
                     password,

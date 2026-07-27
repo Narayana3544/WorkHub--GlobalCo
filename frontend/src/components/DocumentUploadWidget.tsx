@@ -170,7 +170,7 @@ export const DocumentUploadWidget: React.FC<DocumentUploadWidgetProps> = ({ owne
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <a 
-                                        href={`http://localhost:8080/api/documents/${doc.id}/download`} 
+                                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/documents/${doc.id}/download`} 
                                         download
                                         target="_blank"
                                         rel="noreferrer"
