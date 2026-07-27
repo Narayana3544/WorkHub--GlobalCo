@@ -54,11 +54,14 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            // Use specific JWT error if available
+                            String jwtError = (String) request.getAttribute("jwt_error");
+                            String message = jwtError != null ? jwtError : "Authentication required";
                             ApiErrorResponse error = ApiErrorResponse.builder()
                                     .timestamp(Instant.now())
                                     .status(HttpStatus.UNAUTHORIZED.value())
                                     .error("Unauthorized")
-                                    .message("Authentication required")
+                                    .message(message)
                                     .path(request.getRequestURI())
                                     .build();
                             objectMapper.writeValue(response.getOutputStream(), error);
@@ -77,7 +80,7 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/masterdata/public").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()

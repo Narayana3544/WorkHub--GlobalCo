@@ -56,4 +56,8 @@ public class WorkItem extends BaseEntity {
 
     @Column(name = "due_date")
     private LocalDate dueDate;
+
+    @jakarta.persistence.Version
+    @Column(name = "version")
+    private Long version;
 }

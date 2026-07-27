@@ -12,7 +12,7 @@ export const useMasterData = (category: string) => {
                 });
                 return data;
             } catch (error) {
-                console.warn(`API failed to fetch master data for ${category}, using fallback data.`);
+                console.warn(`API failed to fetch master data for ${category}, using fallback data.`, error);
                 // Mock data fallback if API is unreachable
                 if (category === 'LEAVE_TYPE') {
                     return [

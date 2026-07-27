@@ -6,12 +6,11 @@ import { useAuth } from '../context/AuthContext';
 
 export const PerformanceReviews: React.FC = () => {
     const { currentUser } = useAuth();
-    if (!currentUser) return null;
     
-    const isManagerOrAdmin = currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN';
+    const isManagerOrAdmin = currentUser?.role === 'MANAGER' || currentUser?.role === 'ADMIN';
     
     // Fetch all for managers, or just mine for employees
-    const { data: reviews, isLoading } = usePerformanceReviews(isManagerOrAdmin ? undefined : currentUser.id);
+    const { data: reviews, isLoading } = usePerformanceReviews(isManagerOrAdmin ? undefined : currentUser?.id);
     const { data: periods } = useMasterData('REVIEW_PERIOD');
     const { mutate: createReview } = useCreatePerformanceReview();
 
@@ -23,6 +22,8 @@ export const PerformanceReviews: React.FC = () => {
         rating: 3,
         notes: ''
     });
+
+    if (!currentUser) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

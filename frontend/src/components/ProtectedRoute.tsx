@@ -12,18 +12,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     children, 
     allowedRoles 
 }) => {
-    const { currentUser, isAuthenticated } = useAuth();
+    const { currentUser, isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
 
+    // Show a loading indicator while token state is initializing on page refresh
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)]">
+                <div className="w-8 h-8 border-4 border-[var(--color-primary)]/30 border-t-[var(--color-primary)] rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     if (!isAuthenticated || !currentUser) {
-        // Redirect them to the /login page, but save the current location they were
-        // trying to go to when they were redirected. This allows us to send them
-        // along to that page after they login, which is a nicer user experience.
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-        // user's role is not authorized for this route, bounce them to home
         return <Navigate to="/home" replace />;
     }
 

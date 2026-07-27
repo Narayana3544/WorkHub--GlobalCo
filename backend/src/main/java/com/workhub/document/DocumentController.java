@@ -70,14 +70,14 @@ public class DocumentController {
     }
 
     /**
-     * Delete a document. ADMIN only.
+     * Delete a document. Owner or ADMIN only.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Void> delete(
             @PathVariable String id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        documentService.delete(id, principal.getOrgId());
+        documentService.delete(id, principal.getOrgId(), principal.getUserId(), principal.getRole());
         return ResponseEntity.noContent().build();
     }
 }

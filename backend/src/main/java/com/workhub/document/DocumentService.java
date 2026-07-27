@@ -31,8 +31,15 @@ public class DocumentService {
     @Transactional
     public DocumentResponse upload(MultipartFile file, String ownerType, String ownerId,
                                     String uploadedBy, String orgId) {
-        // Validate MIME type
-        String mimeType = file.getContentType();
+        // Detect real MIME type from file content (magic bytes), not the client-supplied header
+        String mimeType;
+        try {
+            org.apache.tika.Tika tika = new org.apache.tika.Tika();
+            mimeType = tika.detect(file.getInputStream(), file.getOriginalFilename());
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to detect file content type", e);
+        }
+
         if (mimeType == null || !allowedTypes.contains(mimeType)) {
             throw new IllegalArgumentException(
                     "File type '" + mimeType + "' is not allowed. Allowed types: " + allowedTypes);
@@ -82,9 +89,16 @@ public class DocumentService {
     }
 
     @Transactional
-    public void delete(String documentId, String orgId) {
+    public void delete(String documentId, String orgId, String userId, String userRole) {
         Document doc = documentRepository.findByIdAndOrgId(documentId, orgId)
                 .orElseThrow(() -> new EntityNotFoundException("Document not found"));
+
+        // Only ADMIN or the original uploader can delete
+        if (!"ADMIN".equals(userRole) && !doc.getUploadedBy().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Only the document owner or an admin can delete this document");
+        }
+
         fileStorageService.delete(doc.getFileUrl());
         documentRepository.delete(doc);
     }

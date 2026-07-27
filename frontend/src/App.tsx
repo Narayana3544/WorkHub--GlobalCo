@@ -10,13 +10,21 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginScreen } from './components/LoginScreen';
 import { HomeScreen } from './components/HomeScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { LogOut } from 'lucide-react';
+import { LogOut, Sun, Moon } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
 // A layout wrapper for authenticated screens
 const AuthenticatedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser, logout } = useAuth();
+    const [isDark, setIsDark] = React.useState(() => {
+        return localStorage.getItem('workhub-theme') === 'dark';
+    });
+
+    React.useEffect(() => {
+        document.documentElement.classList.toggle('dark', isDark);
+        localStorage.setItem('workhub-theme', isDark ? 'dark' : 'light');
+    }, [isDark]);
 
     if (!currentUser) return null;
 
@@ -30,6 +38,14 @@ const AuthenticatedLayout: React.FC<{ children: React.ReactNode }> = ({ children
                 </Link>
 
                 <div className="flex items-center gap-4">
+                    {/* Dark mode toggle */}
+                    <button
+                        onClick={() => setIsDark(prev => !prev)}
+                        className="p-2 rounded-lg text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
                     <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
                             <p className="text-sm font-medium leading-tight">{currentUser.fullName}</p>

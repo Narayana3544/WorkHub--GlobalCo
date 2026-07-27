@@ -106,14 +106,20 @@ public class WorkItemController {
     }
 
     /**
-     * Update work item status. All authenticated users can transition status.
+     * Update the status of a work item.
      */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
     public ResponseEntity<WorkItemResponse> updateStatus(
             @PathVariable String id,
-            @RequestParam Long statusId,
+            @RequestBody(required = false) com.workhub.workitem.dto.StatusUpdateRequest request,
+            @RequestParam(required = false) Long statusId,
             @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(workItemService.updateStatus(id, statusId, principal.getOrgId()));
+        Long targetStatusId = (request != null && request.getStatusId() != null) ? request.getStatusId() : statusId;
+        String targetStatusCode = (request != null) ? request.getStatusCode() : null;
+        return ResponseEntity.ok(workItemService.updateStatus(
+                id, targetStatusId, targetStatusCode, principal.getOrgId(),
+                principal.getUserId(),
+                principal.getRole()));
     }
 }

@@ -34,6 +34,15 @@ public class LeaveRequestService {
             throw new IllegalArgumentException("End date must be on or after start date");
         }
 
+        // Check for overlapping leave requests (non-rejected/cancelled)
+        var overlapping = leaveRequestRepository.findOverlappingLeaves(
+                userId, orgId, request.getStartDate(), request.getEndDate());
+        if (!overlapping.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Leave request overlaps with an existing request from "
+                            + overlapping.get(0).getStartDate() + " to " + overlapping.get(0).getEndDate());
+        }
+
         MasterDataType type = masterDataRepository.findById(request.getTypeId()).orElseThrow();
         MasterDataType pendingStatus = masterDataRepository.findByCategoryAndCode("LEAVE_STATUS", "PENDING")
                 .orElseThrow(() -> new IllegalStateException("Default status 'PENDING' not found in master data"));
@@ -78,6 +87,11 @@ public class LeaveRequestService {
                                                String approverId, String orgId) {
         LeaveRequest leave = leaveRequestRepository.findByIdAndOrgId(id, orgId)
                 .orElseThrow(() -> new EntityNotFoundException("Leave request not found"));
+
+        // Block self-approval: a manager/admin cannot approve/reject their own leave
+        if (approverId.equals(leave.getUserId())) {
+            throw new IllegalArgumentException("You cannot approve or reject your own leave request");
+        }
 
         MasterDataType newStatus = masterDataRepository.findByCategoryAndCode("LEAVE_STATUS", statusCode)
                 .orElseThrow(() -> new IllegalStateException("Status '" + statusCode + "' not found"));

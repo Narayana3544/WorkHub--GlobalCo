@@ -13,7 +13,6 @@ import { useWorkItems, useUpdateWorkItemStatus } from '../api/queries';
 import type { WorkItem, WorkItemStatus } from '../types';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
-import { useAuth } from '../context/AuthContext';
 
 // Mapping local column names to backend status codes
 export const COLUMNS: { id: WorkItemStatus; title: string }[] = [
@@ -25,7 +24,6 @@ export const COLUMNS: { id: WorkItemStatus; title: string }[] = [
 ];
 
 export const KanbanBoard: React.FC<{ projectId: string }> = ({ projectId }) => {
-    const { currentUser } = useAuth();
     const { data: workItems, isLoading } = useWorkItems(projectId);
     const { mutate: updateStatus } = useUpdateWorkItemStatus();
 
@@ -77,21 +75,35 @@ export const KanbanBoard: React.FC<{ projectId: string }> = ({ projectId }) => {
         if (!over) return;
 
         const itemId = active.id as string;
-        const targetColId = over.id as WorkItemStatus;
+        
+        // Target could be a column ID (e.g. 'TODO') or another card ID (e.g. 'card-2')
+        let targetColId: WorkItemStatus | null = null;
+
+        const isOverAColumn = COLUMNS.some(col => col.id === over.id);
+        if (isOverAColumn) {
+            targetColId = over.id as WorkItemStatus;
+        } else {
+            // Over another card — find which column contains that card
+            const overItem = workItems?.find(i => i.id === over.id);
+            if (overItem) {
+                let colId = overItem.statusCode as string;
+                if (colId === 'OPEN') colId = 'TODO';
+                if (colId === 'IN_REVIEW') colId = 'REVIEW';
+                targetColId = colId as WorkItemStatus;
+            }
+        }
+
+        if (!targetColId) return;
 
         const item = workItems?.find(i => i.id === itemId);
         if (!item) return;
 
-        // Role-based constraints
-        if (currentUser?.role === 'EMPLOYEE' && item.assigneeId !== currentUser.id) {
-            alert('Employees can only move their own assigned items.');
-            return;
-        }
+        let sourceColId = item.statusCode as string;
+        if (sourceColId === 'OPEN') sourceColId = 'TODO';
+        if (sourceColId === 'IN_REVIEW') sourceColId = 'REVIEW';
 
-        const sourceColId = item.statusCode;
         if (sourceColId !== targetColId) {
-            // Optimistic update logic
-            updateStatus({ id: itemId, statusId: 999, statusCode: targetColId });
+            updateStatus({ id: itemId, statusCode: targetColId });
         }
     };
 

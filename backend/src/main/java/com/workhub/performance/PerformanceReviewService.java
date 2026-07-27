@@ -33,6 +33,11 @@ public class PerformanceReviewService {
 
     @Transactional
     public ReviewResponse create(CreateReviewRequest request, String reviewerId, String orgId) {
+        // Block self-reviews: reviewer cannot review themselves
+        if (reviewerId.equals(request.getEmployeeId())) {
+            throw new IllegalArgumentException("You cannot create a performance review for yourself");
+        }
+
         masterDataService.validateMasterDataId(request.getPeriodId(), "REVIEW_PERIOD");
 
         User employee = userRepository.findById(request.getEmployeeId())

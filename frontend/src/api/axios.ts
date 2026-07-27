@@ -36,7 +36,7 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handle 401 and attempt refresh
+// Response Interceptor: Handle 401 and attempt refresh, handle 403 globally
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -44,6 +44,18 @@ apiClient.interceptors.response.use(
 
         // Ensure we don't intercept /auth routes directly to avoid loops
         if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh')) {
+            return Promise.reject(error);
+        }
+
+        // Global 403 handler — user is authenticated but not authorized
+        if (error.response?.status === 403) {
+            const message = error.response?.data?.message || 'You do not have permission to perform this action.';
+            // Use a non-blocking notification pattern
+            console.error('[WorkHub] Access denied:', message);
+            if (typeof window !== 'undefined') {
+                // Defer to avoid blocking the interceptor chain
+                setTimeout(() => alert(`Access Denied: ${message}`), 0);
+            }
             return Promise.reject(error);
         }
 

@@ -148,13 +148,36 @@ public class WorkItemService {
     }
 
     @Transactional
-    public WorkItemResponse updateStatus(String id, Long statusId, String orgId) {
-        masterDataService.validateMasterDataId(statusId, "WORK_ITEM_STATUS");
-
+    public WorkItemResponse updateStatus(String id, Long statusId, String statusCode, String orgId,
+                                          String userId, String userRole) {
         WorkItem item = workItemRepository.findByIdAndOrgId(id, orgId)
                 .orElseThrow(() -> new EntityNotFoundException("Work item not found"));
 
-        item.setStatus(masterDataRepository.findById(statusId).orElseThrow());
+        // Employees can only transition status of items assigned to them
+        if ("EMPLOYEE".equals(userRole)) {
+            if (item.getAssignee() == null || !item.getAssignee().getId().equals(userId)) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Employees can only update status of work items assigned to them");
+            }
+        }
+
+        MasterDataType newStatus;
+        if (statusId != null && statusId > 0) {
+            masterDataService.validateMasterDataId(statusId, "WORK_ITEM_STATUS");
+            newStatus = masterDataRepository.findById(statusId).orElseThrow();
+        } else if (statusCode != null && !statusCode.isBlank()) {
+            String dbCode = statusCode;
+            if ("TODO".equals(statusCode) || "BACKLOG".equals(statusCode)) dbCode = "OPEN";
+            if ("REVIEW".equals(statusCode)) dbCode = "IN_REVIEW";
+
+            final String finalCode = dbCode;
+            newStatus = masterDataRepository.findByCategoryAndCode("WORK_ITEM_STATUS", finalCode)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid status code: " + finalCode));
+        } else {
+            throw new IllegalArgumentException("Either statusId or statusCode must be provided");
+        }
+
+        item.setStatus(newStatus);
         return toResponse(workItemRepository.save(item));
     }
 

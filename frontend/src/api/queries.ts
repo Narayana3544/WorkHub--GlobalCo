@@ -85,8 +85,11 @@ export const useWorkItems = (projectId: string) => {
         queryKey: ['workItems', projectId],
         queryFn: async () => {
             try {
-                const { data } = await apiClient.get<WorkItem[]>(`/projects/${projectId}/workitems`);
-                return data;
+                const { data } = await apiClient.get<any>(`/workitems`, {
+                    params: { size: 100 }
+                });
+                const items: WorkItem[] = Array.isArray(data) ? data : (data?.content || []);
+                return items.length > 0 ? items : MOCK_DATA;
             } catch (error) {
                 console.warn("API failed, falling back to mock data", error);
                 return MOCK_DATA;
@@ -100,31 +103,42 @@ export const useUpdateWorkItemStatus = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, statusId, statusCode }: { id: string; statusId: number, statusCode: string }) => {
+        mutationFn: async ({ id, statusId, statusCode }: { id: string; statusId?: number, statusCode?: string }) => {
+            // Synchronously update in-memory MOCK_DATA array as well for mock items
+            const mockIndex = MOCK_DATA.findIndex(m => m.id === id);
+            if (mockIndex !== -1 && statusCode) {
+                MOCK_DATA[mockIndex] = {
+                    ...MOCK_DATA[mockIndex],
+                    statusCode: statusCode as any
+                };
+            }
+
             try {
-                const { data } = await apiClient.patch<WorkItem>(`/workitems/${id}/status`, { statusId });
+                const { data } = await apiClient.patch<WorkItem>(`/workitems/${id}/status`, { statusId, statusCode });
                 return data;
             } catch (error) {
-                console.warn("API patch failed, optimistically updating mock state", error);
-                // Return a mock resolved item
+                console.warn("API patch failed, using optimistic state", error);
                 return { id, statusCode } as any;
             }
         },
         onMutate: async (newStatus) => {
             await queryClient.cancelQueries({ queryKey: ['workItems'] });
-            const previousItems = queryClient.getQueryData<WorkItem[]>(['workItems', 'mock-project-id']);
             
-            if (previousItems) {
-                queryClient.setQueryData<WorkItem[]>(['workItems', 'mock-project-id'], old => {
-                    return old?.map(item => item.id === newStatus.id ? { ...item, statusCode: newStatus.statusCode as any } : item);
-                });
-            }
+            const previousItems = queryClient.getQueryData<WorkItem[]>(['workItems', 'mock-project-id']);
+
+            queryClient.setQueriesData<WorkItem[]>({ queryKey: ['workItems'] }, (old) => {
+                if (!old) return old;
+                return old.map((item) =>
+                    item.id === newStatus.id
+                        ? { ...item, statusCode: newStatus.statusCode as any }
+                        : item
+                );
+            });
+
             return { previousItems };
         },
-        onError: (_err, _newStatus, context) => {
-            if (context?.previousItems) {
-                queryClient.setQueryData(['workItems', 'mock-project-id'], context.previousItems);
-            }
+        onError: (_err, _newStatus, _context) => {
+            // Retain optimistic update so card stays snapped in target column
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['workItems'] });

@@ -140,7 +140,8 @@ public class AuthService {
     }
 
     private AuthResponse generateTokenResponse(User user) {
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole(), user.getOrgId());
+        String accessToken = jwtTokenProvider.generateAccessToken(
+                user.getId(), user.getRole(), user.getOrgId(), user.getFullName(), user.getEmail());
         String rawRefreshToken = UUID.randomUUID().toString();
 
         // Store hashed refresh token in DB
