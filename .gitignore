@@ -12,7 +12,6 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/.env
 frontend/.env.*
-frontend/package-lock.json
 
 # Backend (Spring Boot / Maven)
 backend/target/
