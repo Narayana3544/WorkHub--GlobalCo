@@ -1,0 +1,7 @@
+CREATE TABLE organizations (
+    id          VARCHAR(36)  NOT NULL PRIMARY KEY,
+    name        VARCHAR(255) NOT NULL,
+    slug        VARCHAR(100) NOT NULL UNIQUE,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

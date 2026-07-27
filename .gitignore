@@ -1,0 +1,31 @@
+# Global
+.env
+.idea/
+.vscode/
+*.log
+
+# Frontend (React/Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.env
+frontend/.env.*
+frontend/package-lock.json
+
+# Backend (Spring Boot / Maven)
+backend/target/
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/release.properties
+backend/dependency-reduced-pom.xml
+backend/buildNumber.properties
+backend/.mvn/timing.properties
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Uploads directory
+/uploads/*
+!/uploads/.gitignore

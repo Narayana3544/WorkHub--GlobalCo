@@ -1,0 +1,5 @@
+# WorkHub Uploads
+# This directory is used for local file storage.
+# In production, switch to S3 by changing workhub.storage.type=s3
+*
+!.gitignore

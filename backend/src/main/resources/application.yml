@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: workhub-backend
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# --- WorkHub Custom Config ---
+workhub:
+  jwt:
+    secret: ${JWT_SECRET:workhub-dev-secret-key-that-is-at-least-256-bits-long-for-hs256-signing}
+    access-token-expiry-ms: 900000        # 15 minutes
+    refresh-token-expiry-ms: 604800000    # 7 days
+    audience: workhub-client
+
+  storage:
+    type: local                            # Switch to 's3' for AWS S3
+    upload-dir: ./uploads
+    allowed-types:
+      - application/pdf
+      - image/png
+      - image/jpeg
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    max-file-size-bytes: 10485760          # 10 MB
