@@ -7,6 +7,26 @@ Full scope, delivered-vs-deferred breakdown, and roadmap: see [`WorkHub_PRD_v2.m
 
 ---
 
+## 🚀 Live Demo
+
+| | URL |
+|---|---|
+| **Frontend** | [work-hub-global-co.vercel.app](https://work-hub-global-co.vercel.app) |
+| **Backend API** | [reasonable-presence-production-599b.up.railway.app](https://reasonable-presence-production-599b.up.railway.app) |
+
+### Demo Credentials
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@workhub.com` |
+| Password | `Admin@123` |
+| Role | ADMIN |
+| Organization | GlobalCo |
+
+> **First-time setup:** If the database has been reset, register a new account via the **Create Account** tab on the login page. The first user registered in an organization is automatically assigned the **ADMIN** role.
+
+---
+
 ## Why WorkHub Exists (Business Value)
 
 Most MSMEs run their operations on a patchwork of spreadsheets, WhatsApp groups, and email threads — leave requests get lost, task ownership is unclear, and there's no single source of truth for "who did what." Enterprise tools (Jira, BambooHR, Lattice) solve this but are priced and configured for companies 10x the size, with onboarding overhead an MSME can't absorb.
@@ -57,9 +77,9 @@ The original PRD scoped per-role dashboards (Employee sprint progress, Team Lead
 
 ## Tech Stack
 
-- **Backend:** Java, Spring Boot 3, Spring Security, JWT (`jjwt`), Flyway migrations, H2 (dev) / Postgres (prod)
-- **Frontend:** React + TypeScript, Vite, Tailwind CSS v4, dnd-kit, React Query, Axios
-- **Design system:** shared CSS custom properties (`--color-*`) for a single global theme across every screen, light/dark mode
+- **Backend:** Java 17, Spring Boot 3, Spring Security, JWT (`jjwt`), Flyway migrations, H2 (dev) / PostgreSQL (prod)
+- **Frontend:** React 19 + TypeScript, Vite, Tailwind CSS v4, dnd-kit, TanStack React Query, Axios
+- **Design system:** Shared CSS custom properties (`--color-*`) for a single global theme across every screen, with light/dark mode support
 
 ## Known Trade-offs (v1, by design)
 
@@ -69,41 +89,63 @@ The original PRD scoped per-role dashboards (Employee sprint progress, Team Lead
 ## What's Deferred (Not Missing — Scoped)
 
 Team Lead & HR roles, timesheets, sprint planning/capacity tracking, immutable audit log UI, leave calendar view. Full rationale and target release for each is in the PRD's Section 4 and 6.
-This repository is organized as a **Monorepo**:
-
-- `/backend`: Contains the Spring Boot 3 Java application (Maven).
-- `/frontend`: Contains the React + TypeScript application (Vite).
-
-*Note: To run either application locally, ensure your terminal is navigated into the respective subdirectory (`cd backend` or `cd frontend`).*
-
-## CI/CD Pipeline Architecture
-
-We utilize an automated Continuous Integration and Continuous Deployment (CI/CD) pipeline directly tied to the `main` branch.
-
-### Frontend Deployment (Vercel)
-The frontend is built and deployed automatically via **GitHub Actions**. 
-On every push or pull request to `main`:
-1. The `.github/workflows/ci.yml` pipeline triggers.
-2. It runs `mvn test` in the `/backend` and `npm run build` in the `/frontend` in parallel.
-3. Upon success of both jobs, a third job (`frontend-deploy`) triggers a Vercel deployment using the `amondnet/vercel-action` utilizing standard GitHub secrets (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`).
-
-### Backend Deployment (Railway)
-The backend is seamlessly auto-deployed via **Railway's native Git Integration**.
-- **No GitHub Action Required:** Railway is connected directly to this repository. 
-- On every push to `main`, Railway detects changes in the `/backend` directory (configured via Railway's Root Directory setting).
-- It automatically provisions the environment (Java 17), runs the Maven build (`mvn clean package`), provisions the PostgreSQL database, and deploys the application container.
-- Flyway migrations run automatically on boot to ensure the database schema is perfectly synced with the code.
 
 ---
 
-### Local Development Quick Start
+## Project Structure
+
+This repository is organized as a **Monorepo**:
+
+```
+WorkHub--GlobalCo/
+├── backend/          # Spring Boot 3 Java application (Maven)
+├── frontend/         # React + TypeScript application (Vite)
+├── uploads/          # Local file storage (dev only)
+└── .github/workflows/ci.yml  # CI/CD pipeline
+```
+
+## CI/CD Pipeline Architecture
+
+### Frontend Deployment (Vercel)
+
+The frontend is deployed automatically via **Vercel's GitHub integration**:
+- On every push to `main`, Vercel detects changes and triggers a build.
+- **Root Directory** is set to `frontend/` in Vercel project settings.
+- **Framework Preset:** Vite — builds with `npm run build`, serves from `dist/`.
+- **SPA Routing:** `vercel.json` rewrites all routes to `index.html` for client-side routing.
+- The `VITE_API_URL` environment variable is configured in the Vercel dashboard to point to the Railway backend.
+
+Additionally, the GitHub Actions CI pipeline (`.github/workflows/ci.yml`) runs `mvn test` and `npm run build` in parallel on every push/PR to `main`, and can deploy via `amondnet/vercel-action` when Vercel secrets are configured.
+
+### Backend Deployment (Railway)
+
+The backend is auto-deployed via **Railway's native Git integration**:
+- On every push to `main`, Railway detects changes in the `/backend` directory.
+- It provisions Java 17, runs `mvn clean package`, provisions a PostgreSQL database, and deploys the application container.
+- Flyway migrations run automatically on boot to keep the database schema in sync.
+- **CORS** is configured in `SecurityConfig.java` to allow requests from the Vercel production domain and preview deployments.
+
+### Environment Variables
+
+| Variable | Where | Value |
+|----------|-------|-------|
+| `VITE_API_URL` | Vercel Dashboard | `https://reasonable-presence-production-599b.up.railway.app` |
+| `SPRING_PROFILES_ACTIVE` | Railway | `prod` |
+| `DB_URL` | Railway (auto-provisioned) | PostgreSQL connection URL |
+| `DB_USERNAME` | Railway (auto-provisioned) | PostgreSQL username |
+| `DB_PASSWORD` | Railway (auto-provisioned) | PostgreSQL password |
+| `WORKHUB_JWT_SECRET` | Railway | JWT signing secret |
+
+---
+
+## Local Development Quick Start
 
 **Backend:**
 ```bash
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
-Runs on `http://localhost:8080`.
+Runs on `http://localhost:8080` with an in-memory H2 database.
 
 **Frontend:**
 ```bash
@@ -111,4 +153,9 @@ cd frontend
 npm install
 npm run dev
 ```
-Runs on `http://localhost:5173`.
+Runs on `http://localhost:5173`. By default connects to `http://localhost:8080` (the local backend).
+
+To point the frontend at a remote backend during local dev:
+```bash
+VITE_API_URL=https://reasonable-presence-production-599b.up.railway.app npm run dev
+```
