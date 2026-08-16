@@ -16,6 +16,8 @@ Full scope, delivered-vs-deferred breakdown, and roadmap: see [`WorkHub_PRD_v2.m
 
 ### Demo Credentials
 
+> **First-time setup:** If the database has been reset, register a new account via the **Create Account** tab on the login page. The first user registered in an organization is automatically assigned the **ADMIN** role. or you can try with these creds
+
 | Field | Value |
 |-------|-------|
 | Email | `admin@workhub.com` |
@@ -23,7 +25,7 @@ Full scope, delivered-vs-deferred breakdown, and roadmap: see [`WorkHub_PRD_v2.m
 | Role | ADMIN |
 | Organization | GlobalCo |
 
-> **First-time setup:** If the database has been reset, register a new account via the **Create Account** tab on the login page. The first user registered in an organization is automatically assigned the **ADMIN** role.
+
 
 ---
 
@@ -158,4 +160,4 @@ Runs on `http://localhost:5173`. By default connects to `http://localhost:8080` 
 To point the frontend at a remote backend during local dev:
 ```bash
 VITE_API_URL=https://reasonable-presence-production-599b.up.railway.app npm run dev
-```
+```
